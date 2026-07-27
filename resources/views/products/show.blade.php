@@ -35,6 +35,17 @@
             <th>コメント</th>
             <td>{{ $product->comment }}</td>
         </tr>
+
+        <tr>
+        <th>商品画像</th>
+        <td>
+            @if ($product->image)
+                <img src="{{ asset('storage/' . $product->image) }}" alt="{{ $product->product_name }}" style="max-width: 200px;">
+            @else
+                <span>画像なし</span>
+            @endif
+        </td>
+    </tr>
     </table>
 
     <div class="mt-3">
