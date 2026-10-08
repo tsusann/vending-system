@@ -27,11 +27,38 @@ class ProductController extends Controller
             $query->where('company_id', 'like', $request->company_id);
         }
 
+        // 3. 価格（下限〜上限）検索
+        if ($request->filled('price_min')) {
+            $query->where('price', '>=', $request->price_min);
+        }
+        if ($request->filled('price_max')) {
+            $query->where('price', '<=', $request->price_max);
+        }
+
+        // 4. 在庫数（下限〜上限）検索
+        if ($request->filled('stock_min')) {
+            $query->where('stock', '>=', $request->stock_min);
+        }
+        if ($request->filled('stock_max')) {
+            $query->where('stock', '<=', $request->stock_max);
+        }
+
+        // 5. ソート処理（初期表示時は id 降順）
+        $sortColumn = $request->input('sort_column', 'id');
+        $sortOrder = $request->input('sort_order', 'desc');
+        $query->orderBy($sortColumn, $sortOrder);
+
         $products = $query->get();
 
         // セレクトボックス用
         $companies = Company::all();
 
+        // ★ Ajaxリクエストの場合はテーブルの部分HTMLだけを返す
+        if ($request->ajax()) {
+            return view('products.table', compact('products'))->render();
+        }
+
+        // 通常のリクエストの場合は全体画面を返す
         return view('products.index', compact('products', 'companies'));
     }
 
@@ -143,14 +170,25 @@ class ProductController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(Product $product)
+    public function destroy(Request $request, Product $product)
     {
+        // 画像ファイルが存在する場合はストレージから削除
         if ($product->image) {
             Storage::disk('public')->delete($product->image);
         }
 
+        // DBから商品を削除
         $product->delete();
 
+        // ★ Ajax（非同期）リクエストの場合
+        if ($request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'message' => '商品を削除しました。'
+            ]);
+        }
+
+        // 通常のリクエストの場合（従来の処理）
         return redirect()->route('products.index')
             ->with('success', '商品を削除しました。');
     }
